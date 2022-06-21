@@ -796,6 +796,23 @@ I hope you like how it turned out! I had a lot of fun making it.
         top 300ms ease-in-out;
     }
 
+    @media screen and (max-height: 748px) {
+      #toolbar .button-container button {
+        height: 50px;
+      }
+
+      #toolbar .button-container .selected {
+        display: none;
+        position: absolute;
+        top: 5px;
+        left: 5px;
+        background-color: var(--primaryLight);
+        height: 40px;
+        width: 170px;
+        border-radius: 15px;
+      }
+    }
+
     @media screen and (min-width: 700px) {
       #toolbar .button-container:not(:last-child) {
         margin-right: 10vw;
@@ -814,22 +831,6 @@ I hope you like how it turned out! I had a lot of fun making it.
 
       #toolbar .button-container:not(:last-child) {
         margin-bottom: 5vw;
-      }
-    }
-
-    @media screen and (max-height: 748px) {
-      #toolbar .button-container button {
-        height: 50px;
-      }
-
-      #toolbar .button-container .selected {
-        position: absolute;
-        top: 5px;
-        left: 5px;
-        background-color: var(--primaryLight);
-        height: 40px;
-        width: 170px;
-        border-radius: 15px;
       }
     }
   </style>
@@ -1342,9 +1343,12 @@ I hope you like how it turned out! I had a lot of fun making it.
 
         selectedHour.current.style.top = hourType === 24 ? topShortView : bottomShortView;
         selectedHour.current.style.left = '5px';
+        selectedHour.current.style.display = 'block';
       }
 
       function setClockTypePosition() {
+        console.log(window.innerHeight);
+
         if (!selectedClock) {
           return;
         }
@@ -1365,6 +1369,7 @@ I hope you like how it turned out! I had a lot of fun making it.
 
         selectedClock.current.style.top = clockType === 'Digital' ? topShortView : bottomShortView;
         selectedClock.current.style.left = '5px';
+        selectedClock.current.style.display = 'block';
       }
 
       return (

@@ -1454,9 +1454,9 @@ I hope you like how it turned out! I had a lot of fun making it.
     // Automatically set theme based on local time of day - https://codepen.io/mrozilla/pen/OJJNjRb
     const hours = new Date().getHours();
 
-    // if (hours < 7 || hours > 19) {
+    if (hours < 7 || hours > 19) {
       toggleMode('dark');
-    // }
+    }
 
     function toggleMode(mode) {
       toggle.checked = mode === 'light' ? false : true;

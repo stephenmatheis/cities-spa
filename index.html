@@ -1,0 +1,1472 @@
+<!-- 
+README
+--------------------------------------------------------------------------------
+
+# Cities
+
+You can check out a built version of the same app and it's repo at:
+
+(Cities - React)[https://cities-react.netlify.app/]
+(GitHub)[https://github.com/stephenmatheis/cities-react]
+
+The first version didn't use React. You can check it and it's repo out
+here:
+
+(Cities - VanillaJS)[https://cities-vanillajs.netlify.app/]
+(GitHub)[https://github.com/stephenmatheis/cities-vanillajs]
+
+## Features
+- Responsive. Optimzed for iPhone and iPad.
+- Light and Dark modes. Trigged by time of day, user's OS preference, or
+  manually toggled.
+- Choose from digial or analog clock types and 12 or 24 hour periods.
+- Your choices persist between sessions. Click or tap reset to clear selections.
+- The time will continue to update evey second until you leave the page.
+- Changing the clock type or period doesn't stop the time from incrementing.
+
+## Requirements
+[x] On resize, the sliding indicator bar should update its position and size to
+    match text.
+[x] Code should be optimized for Safari. Support for other browsers is not
+    necessary.
+[x] Please limit library usage. ES6 and CSS as much as possible.
+[x] React and SASS are permissible.
+[x] At your discretion, feel free to use minimal and essential dependencies to
+    complete the assessment (e.g. classnames for HTML classes, and axios for
+    HTTP requests).
+
+Just so we're on the same page, I didn't design and write this solution in less
+than three hours! I kept finding litle things to add. And, of course, bugs!
+There's a lot I'd do diffently (redundant styling, poorly optimized useEffect
+hooks, etc.). I'm not the fastest with CSS. I look to the community (CodePen is
+great) for ideas. It can take me a while to modify the awesome work talented
+CSS developers share. There are links to inspirations and answers to hard bugs
+or imperfect work-arounds throughout this file. I'm not great with documenting
+as I write. Given more time, I would go back and make sure at least each
+component module included a JSDoc comment with prop descriptions.
+
+I wrote the entire program offline. I used create-react-app for the prototype.
+I wasn't sure if we could split the solution across mulitple files or push to a
+remote git repo like you can with HackerRank. I manually combined each function
+component and their CSS into this document.
+
+I hope you like how it turned out! I had a lot of fun making it.
+-->
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Cities</title>
+  <style>
+    /** Root **********************************************************************/
+    :root {
+      --primary: rgb(0, 137, 250);
+      --primaryLight: rgb(222, 237, 249);
+      --default: darkgray;
+      --hover: rgb(104, 153, 202);
+      --offset-orthogonal: calc(var(--size) * 0.65);
+      --offset-diagonal: calc(var(--size) * 0.45);
+      --ray-size: calc(var(--size) * -0.4);
+      --size: 1.25em;
+
+      --background-light: white;
+      --secondary-light: rgb(246, 246, 246);
+      --selected-light: #1e1e1e;
+      --light-light: lightgray;
+      --box-shadow-light: #b8b9be;
+
+      --primaryLight-dark: #0d304c;
+      --background-dark: #151515;
+      --secondary-dark: #1e1e1e;
+      --selected-dark: #d4d4d4;
+      --light-dark: #2e2e2e;
+      --box-shadow-dark: #131313;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    html {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol"
+    }
+
+    body {
+      flex-direction: column;
+      background: var(--background);
+      height: 100vh;
+      width: 100vw;
+      min-width: 375px;
+      margin: 0px;
+      padding: 30px;
+    }
+
+    #root {
+      flex: 1;
+      display: flex;
+      height: 100%;
+    }
+
+    @media screen and (max-width: 700px) {
+      body {
+        flex-direction: row;
+        padding-right: 0px;
+      }
+    }
+
+    /* Mobile Safari Support */
+    /* (Reference)[https://www.bram.us/2021/07/08/the-large-small-and-dynamic-viewports/] */
+    @supports (height: 100dvh) {
+      body {
+        height: 100dvh;
+      }
+    }
+
+    /** Dark/Light Mode ****************************************************/
+    @media (prefers-color-scheme: light) {
+      :root {
+        --background: white;
+        --secondary: rgb(246, 246, 246);
+        --selected: #1e1e1e;
+        --light: lightgray;
+        --box-shadow: #b8b9be;
+      }
+
+      .toggle {
+        color: var(--primary);
+        transform: scale(1);
+        box-shadow: inset calc(var(--size) * 0.33) calc(var(--size) * -0.25) 0;
+      }
+    }
+
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --primaryLight: #0d304c;
+        --background: #151515;
+        --secondary: #1e1e1e;
+        --selected: #d4d4d4;
+        --light: #2e2e2e;
+        --box-shadow: #131313;
+      }
+
+      .toggle {
+        transform: scale(0.75);
+        color: var(--primary);
+        box-shadow: inset 0 0 0 var(--size), calc(var(--offset-orthogonal) * -1) 0 0 var(--ray-size), var(--offset-orthogonal) 0 0 var(--ray-size), 0 calc(var(--offset-orthogonal) * -1) 0 var(--ray-size), 0 var(--offset-orthogonal) 0 var(--ray-size), calc(var(--offset-diagonal) * -1) calc(var(--offset-diagonal) * -1) 0 var(--ray-size), var(--offset-diagonal) var(--offset-diagonal) 0 var(--ray-size), calc(var(--offset-diagonal) * -1) var(--offset-diagonal) 0 var(--ray-size), var(--offset-diagonal) calc(var(--offset-diagonal) * -1) 0 var(--ray-size);
+      }
+    }
+
+    /* Light */
+    html[data-theme="light"] body {
+      background-color: var(--background-light) !important;
+    }
+
+    html[data-theme="light"] .clock,
+    html[data-theme="light"] .button-container {
+      background-color: var(--secondary-light) !important;
+    }
+
+    html[data-theme="light"] .button-container .selected {
+      background-color: var(--primaryLight) !important;
+    }
+
+    html[data-theme="light"] #bar {
+      background-color: var(--light-light) !important;
+    }
+
+    html[data-theme="light"] #slider {
+      background-color: var(--selected-light) !important;
+    }
+
+    html[data-theme="light"] #time {
+      color: var(--selected-light) !important;
+    }
+
+    html[data-theme="light"] .city.selected {
+      color: var(--primary) !important;
+    }
+
+    html[data-theme="light"] .axis {
+      box-shadow: 0 0 0 1px var(--background-light) !important;
+    }
+
+    html[data-theme="light"] .hour,
+    html[data-theme="light"] .minute,
+    html[data-theme="light"] .second {
+      box-shadow: 6px 6px 6px var(--box-shadow-light) !important;
+    }
+
+    html[data-theme="light"] .hour,
+    html[data-theme="light"] .minute {
+      background: var(--selected-light) !important;
+      border: solid 2px var(--selected-light) !important;
+    }
+
+    html[data-theme="light"] .hours-labels {
+      color: var(--selected-light) !important;
+    }
+
+    /* Moon */
+    html[data-theme="light"] .toggle {
+      transform: scale(1);
+      color: var(--primary);
+      box-shadow: inset calc(var(--size) * 0.33) calc(var(--size) * -0.25) 0;
+    }
+
+    /* Dark */
+    html[data-theme="dark"] body {
+      background-color: var(--background-dark) !important;
+    }
+
+    html[data-theme="dark"] .clock,
+    html[data-theme="dark"] .button-container {
+      background-color: var(--secondary-dark) !important;
+    }
+
+    html[data-theme="dark"] .button-container .selected {
+      background-color: var(--primaryLight-dark) !important;
+    }
+
+    html[data-theme="dark"] #bar {
+      background-color: var(--light-dark) !important;
+    }
+
+    html[data-theme="dark"] #slider {
+      background-color: var(--selected-dark) !important;
+    }
+
+    html[data-theme="dark"] #time {
+      color: var(--selected-dark) !important;
+    }
+
+    html[data-theme="dark"] .city.selected {
+      color: var(--primary) !important;
+    }
+
+    html[data-theme="dark"] .axis {
+      box-shadow: 0 0 0 1px var(--background-dark) !important;
+    }
+
+    html[data-theme="dark"] .hour,
+    html[data-theme="dark"] .minute,
+    html[data-theme="dark"] .second {
+      box-shadow: 6px 6px 6px var(--box-shadow-dark) !important;
+    }
+
+    html[data-theme="dark"] .hour,
+    html[data-theme="dark"] .minute {
+      background: var(--selected-dark) !important;
+      border: solid 2px var(--selected-dark) !important;
+    }
+
+    html[data-theme="dark"] .hours-labels {
+      color: var(--selected-dark) !important;
+    }
+
+    /* Sun */
+    html[data-theme="dark"] .toggle {
+      transform: scale(0.75);
+      color: var(--primary);
+      box-shadow: inset 0 0 0 var(--size), calc(var(--offset-orthogonal) * -1) 0 0 var(--ray-size), var(--offset-orthogonal) 0 0 var(--ray-size), 0 calc(var(--offset-orthogonal) * -1) 0 var(--ray-size), 0 var(--offset-orthogonal) 0 var(--ray-size), calc(var(--offset-diagonal) * -1) calc(var(--offset-diagonal) * -1) 0 var(--ray-size), var(--offset-diagonal) var(--offset-diagonal) 0 var(--ray-size), calc(var(--offset-diagonal) * -1) var(--offset-diagonal) 0 var(--ray-size), var(--offset-diagonal) calc(var(--offset-diagonal) * -1) 0 var(--ray-size);
+    }
+
+    .mode {
+      position: fixed;
+      width: fit-content;
+      bottom: 5px;
+      left: 5px;
+    }
+
+    .toggle {
+      -webkit-appearance: none;
+      -moz-appearance: none;
+      appearance: none;
+      outline: none;
+      border: none;
+      cursor: pointer;
+      width: var(--size);
+      height: var(--size);
+      box-shadow: inset calc(var(--size) * 0.33) calc(var(--size) * -0.25) 0;
+      border-radius: 999px;
+      color: var(--color-dark);
+      transition: all 200ms;
+      z-index: 1;
+    }
+
+    /** APP ***********************************************************************/
+    .App {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+    }
+
+    main {
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      flex: 2;
+    }
+
+    footer {
+      width: 100vw;
+      position: fixed;
+    }
+
+    #reset {
+      font-size: 0.8em;
+      padding: 0px;
+      cursor: pointer;
+      text-align: center;
+      background-color: transparent;
+      color: var(--primary);
+      border: none;
+      font-weight: 600;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    @media screen and (min-width: 700px) {
+      footer {
+        bottom: 10px;
+        left: 0px;
+        text-align: center;
+      }
+    }
+
+    @media screen and (max-width: 700px) {
+      .App {
+        display: flex;
+        flex-direction: row;
+      }
+
+      footer {
+        top: 5px;
+        right: 10px;
+        text-align: right;
+      }
+    }
+
+    /** NavBar ********************************************************************/
+    /* Nav */
+    nav {
+      display: flex;
+      justify-content: space-evenly;
+      width: 100%;
+    }
+
+    .city {
+      user-select: none;
+      cursor: pointer;
+      color: var(--default);
+      font-weight: 300;
+      transition: color 100ms ease-in-out;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    .city:hover {
+      color: var(--hover);
+    }
+
+    .city.selected {
+      color: var(--selected);
+    }
+
+    /* Slider */
+    #bar {
+      position: relative;
+      margin-top: 10px;
+      width: 100%;
+      height: 1px;
+      background-color: var(--light);
+    }
+
+    #slider {
+      position: absolute;
+      top: 0px;
+      left: 0px;
+      height: 1px;
+      width: 0px;
+      background-color: var(--selected);
+    }
+
+    #slider.transition {
+      transition: height 300ms ease-in-out, width 300ms ease-in-out,
+        top 300ms ease-in-out, left 300ms ease-in-out;
+    }
+
+    @media screen and (max-width: 700px) {
+      .nav-container {
+        display: flex;
+        height: 100%;
+      }
+
+      nav {
+        display: flex;
+        flex-direction: column;
+      }
+
+      #bar {
+        margin-top: 0px;
+        margin-left: 10px;
+        height: 100%;
+        width: 1px;
+        background-color: var(--light);
+      }
+
+      #slider {
+        position: absolute;
+        top: 0px;
+        left: 0px;
+        height: 0px;
+        width: 1px;
+        background-color: var(--selected);
+      }
+    }
+
+    /** Time **********************************************************************/
+    /* Digital */
+    #time {
+      display: flex;
+      align-items: baseline;
+      font-size: 20vw;
+      font-weight: 600;
+      color: var(--selected);
+    }
+
+    .time-block {
+      opacity: 0;
+      transform: translateY(-20vw);
+    }
+
+    .time-block.hours {
+      animation: drop-in-digital 400ms ease-in-out forwards;
+    }
+
+    .time-block.minutes {
+      animation: drop-in-digital 400ms ease-in-out 150ms forwards;
+    }
+
+    .time-block.seconds {
+      animation: drop-in-digital 400ms ease-in-out 300ms forwards;
+    }
+
+    @keyframes drop-in-digital {
+      from {
+        opacity: 0;
+        transform: translateY(-20vw);
+      }
+
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    .unit {
+      display: none;
+    }
+
+    #hh,
+    #mm,
+    #ss {
+      width: 25vw;
+      height: 25vw;
+      margin-right: 10px;
+    }
+
+    #ss {
+      color: var(--primary);
+    }
+
+    .time-block.narrow #hh {
+      text-align: right;
+    }
+
+    #hour-period {
+      font-size: 5vw;
+    }
+
+    /* Analog */
+    /* Modified from (CodePen)[https://codepen.io/rizz-wan/pen/LYQrGXM] */
+    .clock-container.animate {
+      animation: drop-in-analog 400ms ease-in-out forwards;
+      opacity: 0;
+      transform: translateY(-25vw);
+    }
+
+    @keyframes drop-in-analog {
+      from {
+        opacity: 0;
+        transform: translateY(-25vw);
+      }
+
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    .clock {
+      position: relative;
+      background-color: var(--secondary);
+      border-radius: 100%;
+      height: 23vw;
+      width: 23vw;
+    }
+
+    .minute,
+    .hour {
+      background: var(--selected);
+      border: 2px solid var(--selected);
+      border-top-left-radius: 10px;
+      border-top-right-radius: 10px;
+      bottom: 0;
+      height: 32.5%;
+      left: 0;
+      margin: auto;
+      position: absolute;
+      right: 0;
+      top: -33%;
+      transform-origin: bottom center;
+      transition: transform 0.3s cubic-bezier(0.4, 2.08, 0.55, 0.44);
+      width: 4px;
+    }
+
+    .minute {
+      height: 42.5%;
+      top: -42%;
+    }
+
+    .second {
+      background: var(--primary);
+      border: 1px solid var(--primary);
+      border-top-left-radius: 10px;
+      border-top-right-radius: 10px;
+      bottom: 0px;
+      height: 50%;
+      left: 0px;
+      margin: auto;
+      position: absolute;
+      right: 0px;
+      top: -39.2%;
+      /* -40.8% */
+      transform-origin: 50% 89%;
+      transition: transform 0.2s cubic-bezier(0.4, 2.08, 0.55, 0.44);
+      width: 2px;
+      z-index: 1;
+    }
+
+    .hide-transition {
+      transition: none;
+    }
+
+    .axis {
+      background: var(--primary);
+      border: 2px solid white;
+      border-radius: 100%;
+      bottom: 0;
+      box-shadow: 0 0 0 1px var(--background);
+      height: 8px;
+      left: 0;
+      margin: auto;
+      position: absolute;
+      right: 0;
+      top: 0;
+      width: 8px;
+    }
+
+    .hours-labels {
+      position: relative;
+      background: transparent;
+      border-radius: 100%;
+      height: 23vw;
+      width: 23vw;
+      color: var(--selected);
+    }
+
+    .hour-label {
+      width: 2em;
+      height: 2em;
+      font-size: 1em;
+      text-align: center;
+      position: absolute;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      font-weight: 900;
+    }
+
+    .hour-label.twelve {
+      top: 0px;
+      left: calc(50% - 1em);
+    }
+
+    .hour-label.three {
+      top: calc(50% - 1em);
+      right: 0px;
+    }
+
+    .hour-label.six {
+      bottom: 0px;
+      left: calc(50% - 1em);
+    }
+
+    .hour-label.nine {
+      top: calc(50% - 1em);
+      left: 0px;
+    }
+
+    /* Time zone */
+    #time-zone {
+      text-align: center;
+      font-size: 1.25em;
+      color: var(--default);
+      animation: fade-in 400ms ease-in-out forwards;
+    }
+
+    #time-zone.invisible {
+      opacity: 0;
+      animation: none;
+    }
+
+    @keyframes fade-in {
+      from {
+        opacity: 0;
+      }
+
+      to {
+        opacity: 1;
+      }
+    }
+
+    #hour-period {
+      animation: slide-in 400ms ease-in-out forwards;
+      opacity: 0;
+    }
+
+    @keyframes slide-in {
+      from {
+        opacity: 0;
+        transform: translateX(15vw);
+      }
+
+      to {
+        opacity: 1;
+        transform: translateX(0);
+      }
+    }
+
+    @media screen and (min-width: 700px) {
+      #time-zone {
+        margin-bottom: 2em;
+      }
+
+      .time-block.narrow #hh {
+        width: 12.5vw;
+      }
+
+      .clock-container {
+        margin-bottom: 2vw;
+      }
+    }
+
+    @media screen and (max-width: 700px) {
+      #time-container {
+        min-height: 403px;
+        width: 240px;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
+      }
+
+      #time,
+      .clock-container {
+        min-height: 348px;
+      }
+
+      #time {
+        flex-direction: column;
+        align-items: center;
+      }
+
+      .divider {
+        display: none;
+      }
+
+      .time-block {
+        display: flex;
+        width: 100%;
+      }
+
+      .unit {
+        display: block;
+      }
+
+      #time-zone {
+        min-height: 50px;
+        margin-top: 1.5vh;
+        margin-bottom: 3vh;
+      }
+
+      .clock-container {
+        display: flex;
+        align-items: center;
+      }
+
+      .clock,
+      .hours-labels {
+        height: 45vw;
+        width: 45vw;
+      }
+    }
+
+    @media screen and (max-height: 400px) {
+      #time-zone {
+        margin-bottom: 1em;
+      }
+    }
+
+    @media screen and (max-height: 600px) and (min-width: 900px) {
+      #time-zone {
+        margin-bottom: 0.25em;
+      }
+
+      .clock-container {
+        margin-bottom: 0.25em;
+      }
+
+      .clock,
+      .hours-labels {
+        height: 15vw;
+        width: 15vw;
+      }
+    }
+
+    /** ToolBar *******************************************************************/
+    #toolbar {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      user-select: none;
+    }
+
+    #toolbar .button-container {
+      position: relative;
+      display: flex;
+      background-color: var(--secondary);
+      border-radius: 20px;
+    }
+
+    #toolbar .button-container button {
+      cursor: pointer;
+      text-align: center;
+      border-radius: 10px;
+      background-color: transparent;
+      color: var(--primary);
+      border: none;
+      font-weight: 600;
+      z-index: 2;
+      height: 75px;
+      width: 180px;
+      padding: 0px;
+      font-size: 1em;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    #toolbar .button-container button:active,
+    #toolbar .button-container button:focus {
+      background-color: transparent;
+    }
+
+    #toolbar .button-container .selected {
+      position: absolute;
+      top: 10px;
+      left: 10px;
+      background-color: var(--primaryLight);
+      height: 55px;
+      width: 160px;
+      border-radius: 20px;
+    }
+
+    #toolbar .button-container .selected.transition {
+      transition: left 300ms ease-in-out,
+        top 300ms ease-in-out;
+    }
+
+    @media screen and (min-width: 700px) {
+      #toolbar .button-container:not(:last-child) {
+        margin-right: 10vw;
+      }
+    }
+
+    @media screen and (max-width: 700px) {
+      #toolbar {
+        flex-direction: column;
+        justify-content: start;
+      }
+
+      #toolbar .button-container {
+        flex-direction: column;
+      }
+
+      #toolbar .button-container:not(:last-child) {
+        margin-bottom: 5vw;
+      }
+    }
+
+    @media screen and (max-height: 748px) {
+      #toolbar .button-container button {
+        height: 50px;
+      }
+
+      #toolbar .button-container .selected {
+        position: absolute;
+        top: 5px;
+        left: 5px;
+        background-color: var(--primaryLight);
+        height: 40px;
+        width: 170px;
+        border-radius: 15px;
+      }
+    }
+  </style>
+  <script src="https://unpkg.com/react@17.0.2/umd/react.production.min.js"></script>
+  <script src="https://unpkg.com/react-dom@17.0.2/umd/react-dom.production.min.js"></script>
+  <script src="https://unpkg.com/@babel/standalone@7.13.12/babel.min.js"></script>
+  <script src="https://unpkg.com/classnames@2.3.1/index.js"></script>
+</head>
+
+<body>
+  <div id="root"></div>
+  <!-- Toggle Light/Dark Mode -->
+  <div class="mode">
+    <label style='display: none;' title='Hidden checkbox to toggle dark/light mode' for="toggle"></label>
+    <input id="toggle" class="toggle" type="checkbox">
+  </div>
+  <script type="text/jsx">
+    /** Data **********************************************************************/
+    const cities = [
+      {
+        "section": "cupertino",
+        "label": "Cupertino",
+        "area": "America",
+        "api": "Los_Angeles"
+      },
+      {
+        "section": "new-york-city",
+        "label": "New York City",
+        "area": "America",
+        "api": "New_York"
+      },
+      {
+        "section": "london",
+        "label": "London",
+        "area": "Europe"
+      },
+      {
+        "section": "amsterdam",
+        "label": "Amsterdam",
+        "area": "Europe"
+      },
+      {
+        "section": "tokyo",
+        "label": "Tokyo",
+        "area": "Asia"
+      },
+      {
+        "section": "hong-kong",
+        "label": "Hong Kong",
+        "area": "Asia",
+        "api": "Hong_Kong"
+      },
+      {
+        "section": "sydney",
+        "label": "Sydney",
+        "area": "Australia"
+      }
+    ]
+
+    /** Root **********************************************************************/
+    const useState = React.useState;
+    const useEffect = React.useEffect;
+    const useRef = React.useRef;
+
+    ReactDOM.render(
+      <React.StrictMode>
+        <App />
+      </React.StrictMode>,
+      document.getElementById('root')
+    );
+
+    /** APP ***********************************************************************/
+    function App() {
+      const [selectedCity, setSelectedCity] = useState(JSON.parse(localStorage.getItem('city')) || null);
+      const [hourType, setHourType] = useState(parseInt(localStorage.getItem('hour-type')) || 24);
+      const [hourPeriod, setHourPeriod] = useState('AM');
+      const [clockType, setClockType] = useState(localStorage.getItem('clock-type',) || 'Digital');
+      const [hours, setHours] = useState('00');
+      const [minutes, setMinutes] = useState('00');
+      const [seconds, setSeconds] = useState('00');
+      const [timezone, setTimezone] = useState('PLACEHOLDER');
+      const [updateTime, setUpdateTime] = useState(null);
+
+      useEffect(() => {
+        clearInterval(updateTime);
+
+        if (!selectedCity) {
+          return;
+        }
+
+        setTime();
+
+        setUpdateTime(
+          setInterval(() => {
+            setTime();
+          }, 1000)
+        );
+
+      }, [selectedCity, hourType, hours, minutes, seconds]);
+
+      useEffect(() => {
+        localStorage.setItem('hour-type', hourType.toString());
+        localStorage.setItem('clock-type', clockType);
+        localStorage.setItem('city', JSON.stringify(selectedCity));
+      }, [hourType, clockType, selectedCity])
+
+      useEffect(() => {
+        const hoursNum = parseInt(hours);
+
+        setHours(hourType === 24 ? (hoursNum < 10 ? `0${hoursNum}` : hours) : hoursNum);
+      }, [hourType]);
+
+      function setTime() {
+        const { label, area, api } = selectedCity;
+        const date = new Date().toLocaleTimeString('default', { timeZone: `${area}/${api || label.replaceAll(' ', '_')}`, hour12: false, timeZoneName: 'long' });
+        const [time, ...timeZone] = date.split(' ');
+        const [hh, mm, ss] = time.split(':');
+        const timeZoneName = timeZone.join(' ');
+
+        if (hourType === 24) {
+          setHours(hh === '24' ? '00' : hh);
+        } else {
+          const [time, period] = new Date()
+            .toLocaleTimeString('default', { timeZone: `${area}/${api || label.replaceAll(' ', '_')}` })
+            .split(' ');
+
+          setHours(time.split(':')[0]);
+          setHourPeriod(period);
+        }
+
+        setMinutes(mm);
+        setSeconds(ss);
+        setTimezone(timeZoneName);
+      }
+
+      return (
+        <div className="App">
+          <header>
+            <NavBar
+              selectedCity={selectedCity}
+              setSelectedCity={setSelectedCity}
+            />
+          </header>
+          <main>
+            <Time
+              hours={hours}
+              minutes={minutes}
+              seconds={seconds}
+              timezone={timezone}
+              hourType={hourType}
+              hourPeriod={hourPeriod}
+              clockType={clockType}
+              selectedCity={selectedCity}
+            />
+            <ToolBar
+              hourType={hourType}
+              clockType={clockType}
+              setHourType={setHourType}
+              setClockType={setClockType}
+            ></ToolBar>
+          </main>
+          <footer>
+            <button
+              id='reset'
+              onClick={() => {
+                localStorage.clear();
+                setSelectedCity(null);
+                setClockType('Digital');
+                setHourType(24);
+                setHours('00');
+                setMinutes('00');
+                setSeconds('00');
+                setTimezone('PLACEHOLDER');
+              }}
+            >
+              Reset
+            </button>
+          </footer>
+        </div>
+      );
+    }
+
+    /** NavBar ********************************************************************/
+    function NavBar({ selectedCity, setSelectedCity }) {
+      const [selectedSection, setSelectedSection] = useState('');
+      const [selectedBtn, setSelectedBtn] = useState(null);
+      const [addTransition, setAddTransition] = useState(null);
+      const nav = useRef();
+      const slider = useRef();
+
+      useEffect(() => {
+        window.addEventListener('resize', onResize);
+      }, []);
+
+      useEffect(() => {
+        if (!selectedCity) {
+          setSelectedBtn(null);
+          setSelectedSection(null);
+
+          setTimeout(() => {
+            slider.current.style.top = '0px';
+            slider.current.style.left = '0px';
+            slider.current.style.width = '0px';
+            slider.current.style.height = '0px';
+          }, 0);
+        }
+      }, [selectedCity])
+
+      useEffect(() => {
+        if (selectedCity && !selectedBtn) {
+          setSelectedBtn(nav.current.querySelector(`.city[data-section="${selectedCity.section}"]`));
+          setSelectedSection(selectedCity.section);
+        }
+
+        setSliderSizeAndPosition();
+      }, [selectedBtn, onResize]);
+
+      function onResize() {
+        // Clear addTransition so it only fires once
+        // (i.e. after the user has finished resizing the window)
+        clearTimeout(addTransition);
+
+        // Remove transition while resizing
+        slider.current.classList.remove('transition');
+
+        // Set slider
+        setSliderSizeAndPosition();
+
+        // Add transition back
+        setAddTransition(
+          setTimeout(() => {
+            slider.current.classList.add('transition');
+          }, 200)
+        );
+      }
+
+      function setSliderSizeAndPosition() {
+        if (!selectedBtn) {
+          return;
+        }
+
+        // Get position values of selected city
+        const { width, height, top, left } = selectedBtn.getBoundingClientRect();
+
+        // Get body padding in pixels
+        const bodyPaddingOffset = parseInt(getComputedStyle(document.body).padding.replace('px', '')) || 0;
+
+        // Resize slider size and position to mirror nav link on click
+        if (window.innerWidth > 700) {
+          // Update left and width
+          slider.current.style.left = `${left - bodyPaddingOffset}px`;
+          slider.current.style.width = `${width}px`;
+
+          // Reset top and height
+          slider.current.style.top = '0px';
+          slider.current.style.height = '1px';
+        } else {
+          // Update top and height
+          slider.current.style.top = `${top - bodyPaddingOffset}px`;
+          slider.current.style.height = `${height}px`;
+
+          // Reset left and width
+          slider.current.style.left = '0px'
+          slider.current.style.width = `1px`;
+        }
+      }
+
+      return (
+        <div className='nav-container'>
+          <nav ref={nav}>
+            {
+              cities.map(({ section, label }) => {
+                return (
+                  <div
+                    key={section}
+                    className={classNames('city', { selected: selectedSection === section })}
+                    data-section={section}
+                    onClick={(event) => {
+                      setSelectedSection(event.target.dataset.section);
+                      setSelectedBtn(event.target);
+                      setSelectedCity(cities.find(city => city.section === event.target.dataset.section));
+                    }}
+                  >
+                    {label}
+                  </div>
+                )
+              })
+            }
+          </nav>
+          <div id="bar">
+            <div
+              id="slider"
+              className="transition"
+              ref={slider}
+            ></div>
+          </div>
+        </div>
+      );
+    }
+
+    /** Time **********************************************************************/
+    function Time({ hours, minutes, seconds, timezone, hourType, hourPeriod, clockType, selectedCity }) {
+      // Digital
+      const hoursBlock = useRef(null);
+      const minutesBlock = useRef(null);
+      const secondsBlock = useRef(null);
+
+      // Analog
+      const clockContainer = useRef(null);
+      const hourHand = useRef(null);
+      const minuteHand = useRef(null);
+      const secondHand = useRef(null);
+
+      // Shared
+      const timezoneNode = useRef(null);
+
+      useEffect(() => {
+        reflow(hoursBlock);
+        reflow(minutesBlock);
+        reflow(secondsBlock);
+        reflow(timezoneNode);
+      }, [selectedCity]);
+
+      useEffect(() => {
+        // Modified from (CodePen)[https://codepen.io/rizz-wan/pen/LYQrGXM]
+        const hour = hours * 30;
+        const minute = minutes * 6;
+        const second = seconds * 6;
+
+        if (!hourHand.current && !minuteHand.current && !secondHand.current) {
+          return;
+        }
+
+        hourHand.current.style.transform = `rotate(${hour}deg)`;
+        minuteHand.current.style.transform = `rotate(${minute}deg)`;
+        second === 0
+          ? secondHand.current.classList.add("hide-transition")
+          : secondHand.current.classList.remove("hide-transition");
+        secondHand.current.style.transform = `rotate(${second}deg)`;
+
+        // dynamic shadow
+        let hourOffsetSign = hour > 135 && hour < 315 ? "-" : "";
+        let minuteOffsetSign = minute > 135 && minute < 315 ? "-" : "";
+        let secondOffsetSign = second > 135 && second < 315 ? "-" : "";
+
+        hourHand.current.style.boxShadow = `${hourOffsetSign}6px ${hourOffsetSign}6px 6px var(--box-shadow)`;
+        minuteHand.current.style.boxShadow = `${minuteOffsetSign}6px ${minuteOffsetSign}6px 6px var(--box-shadow)`;
+        secondHand.current.style.boxShadow = `${secondOffsetSign}6px ${secondOffsetSign}6px 6px var(--box-shadow)`;
+      }, [hours, minutes, seconds, clockType]);
+
+      /**
+       * Trigger animation repaint.
+       * 
+       * (Reference)[https://css-tricks.com/restart-css-animation/#aa-update-another-javascript-method-to-restart-a-css-animation]
+       * 
+       * @param {HTMLElement} block - <div class='time-block'>
+       * @returns 
+       */
+      function reflow(block) {
+        if (!block.current) {
+          return;
+        }
+
+        block.current.style.animation = 'none';
+        void block.current.offsetHeight;
+        block.current.style.animation = null;
+      }
+
+      return (
+        <div id='time-container'>
+          {
+            clockType === 'Digital' &&
+            <div id="time">
+              <div
+                className={classNames('time-block', 'hours', { narrow: hourType === 12 && hours < 10 })}
+                ref={hoursBlock}
+              >
+                <div id="hh">{hours}</div>
+                <div className='unit'>h</div>
+              </div>
+              <div className="divider">:</div>
+              <div className='time-block minutes' ref={minutesBlock}>
+                <div id="mm">{minutes}</div>
+                <div className='unit'>m</div>
+              </div>
+              <div className="divider">:</div>
+              <div className='time-block seconds' ref={secondsBlock}>
+                <div id="ss">{seconds}</div>
+                <div className='unit'>s</div>
+              </div>
+              {
+                hourType === 12 &&
+                <div id='hour-period'>
+                  {hourPeriod}
+                </div>
+              }
+            </div>
+          }
+          {
+            clockType === 'Analog' &&
+            // Modified from (CodePen)[https://codepen.io/rizz-wan/pen/LYQrGXM]
+            <div
+              className={classNames('clock-container', {
+                animate: parseInt(hours) === 0 && parseInt(minutes) === 0 && parseInt(seconds) === 0
+              })}
+              ref={clockContainer}
+            >
+              <div className="clock">
+                <span className="hour" ref={hourHand}></span>
+                <span className="minute" ref={minuteHand}></span>
+                <span className="second" ref={secondHand}></span>
+                <span className="axis"></span>
+                <div className='hours-labels'>
+                  <div className='hour-label twelve'>
+                    <div>{hourType === 24 ? '24' : '12'}</div>
+                  </div>
+                  <div className='hour-label three'>
+                    <div>{hourType === 24 ? '15' : '3'}</div>
+                  </div>
+                  <div className='hour-label six'>
+                    <div>{hourType === 24 ? '18' : '6'}</div>
+                  </div>
+                  <div className='hour-label nine'>
+                    <div>{hourType === 24 ? '21' : '9'}</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          }
+          <div
+            id="time-zone"
+            className={classNames({
+              invisible: timezone === 'PLACEHOLDER'
+            })}
+            ref={timezoneNode}
+          >
+            {timezone}
+          </div>
+        </div>
+      );
+    }
+
+    /** ToolBar *******************************************************************/
+    function ToolBar({ hourType, clockType, setHourType, setClockType }) {
+      const selectedHour = useRef(null);
+      const selectedClock = useRef(null);
+      const [addhourTypeTransition, setAddHourTypeTransition] = useState(null);
+      const [addClockTypeTransition, setAddClockTypeTransition] = useState(null);
+      const left = '10px';
+      const right = '190px';
+      const top = '10px';
+      const bottom = '85px';
+      const topShortView = '5px'
+      const bottomShortView = '55px'
+
+      useEffect(() => {
+        window.removeEventListener('resize', onResizeToolBar);
+        window.addEventListener('resize', onResizeToolBar);
+      }, [hourType, clockType]);
+
+      useEffect(() => {
+        setHourTypePosition();
+      }, [hourType]);
+
+      useEffect(() => {
+        setClockTypePosition();
+      }, [clockType]);
+
+      function onResizeToolBar() {
+        clearTimeout(addhourTypeTransition);
+        clearTimeout(addClockTypeTransition);
+
+        selectedHour.current.classList.remove('transition');
+        selectedClock.current.classList.remove('transition');
+
+        setHourTypePosition();
+        setClockTypePosition();
+
+        setAddHourTypeTransition(
+          setTimeout(() => {
+            selectedHour.current.classList.add('transition');
+          }, 200)
+        );
+
+        setAddClockTypeTransition(
+          setTimeout(() => {
+            selectedClock.current.classList.add('transition');
+          }, 200)
+        );
+      }
+
+      function setHourTypePosition() {
+        if (!selectedHour) {
+          return;
+        }
+
+        if (window.innerWidth > 700) {
+          selectedHour.current.style.left = hourType === 24 ? left : right;
+          selectedHour.current.style.top = top;
+
+          return;
+        }
+
+        if (window.innerHeight > 748) {
+          selectedHour.current.style.top = hourType === 24 ? top : bottom;
+          selectedHour.current.style.left = left;
+
+          return;
+        }
+
+        selectedHour.current.style.top = hourType === 24 ? topShortView : bottomShortView;
+        selectedHour.current.style.left = '5px';
+      }
+
+      function setClockTypePosition() {
+        if (!selectedClock) {
+          return;
+        }
+
+        if (window.innerWidth > 700) {
+          selectedClock.current.style.left = clockType === 'Digital' ? left : right;
+          selectedClock.current.style.top = top;
+
+          return;
+        }
+
+        if (window.innerHeight > 748) {
+          selectedClock.current.style.top = clockType === 'Digital' ? top : bottom;
+          selectedClock.current.style.left = left;
+
+          return;
+        }
+
+        selectedClock.current.style.top = clockType === 'Digital' ? topShortView : bottomShortView;
+        selectedClock.current.style.left = '5px';
+      }
+
+      return (
+        <div id="toolbar">
+          <div className="button-container">
+            <button
+              type="button"
+              onClick={() => {
+                selectedClock.current.style.left = left;
+                setClockType('Digital');
+                localStorage.setItem('clock-type', 'Digital');
+              }}
+            >
+              Digital
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                selectedClock.current.style.left = right;
+                setClockType('Analog');
+                localStorage.setItem('clock-type', 'Analog');
+              }}
+            >
+              Analog
+            </button>
+            <div
+              className='selected transition'
+              ref={selectedClock}
+              style={{ left: clockType === 'Digital' ? left : right }}
+            ></div>
+          </div>
+          <div className="button-container">
+            <button
+              type="button"
+              onClick={() => {
+                selectedHour.current.style.left = left;
+                setHourType(24);
+              }}
+            >
+              24 Hour
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                selectedHour.current.style.left = right;
+                setHourType(12);
+              }}
+            >
+              12 Hour
+            </button>
+            <div
+              className='selected transition'
+              ref={selectedHour}
+              style={{ left: hourType === 24 ? left : right }}
+            ></div>
+          </div>
+        </div>
+      );
+    }
+  </script>
+  <script>
+    // Toggle theme
+    const toggle = document.querySelector('#toggle');
+
+    // Detect user preference
+    if (window.matchMedia) {
+      if (window.matchMedia('(prefers-color-scheme: light)').matches) {
+        toggleMode('light');
+      } else if (window.matchMedia('(prefers-color-scheme: dark)').matches) {
+        toggleMode('dark');
+      }
+    } else {
+      toggleMode('light');
+    }
+
+    // Add theme override event listener
+    toggle.addEventListener('change', event => {
+      const state = event.target.checked;
+
+      if (state) {
+        setMode('dark');
+      } else {
+        setMode('light')
+      }
+    });
+
+    // Automatically set theme based on local time of day - https://codepen.io/mrozilla/pen/OJJNjRb
+    const hours = new Date().getHours();
+
+    if (hours < 7 || hours > 19) {
+      toggleMode('dark');
+    }
+
+    function toggleMode(mode) {
+      toggle.checked = mode === 'light' ? false : true;
+      setMode(mode);
+    }
+
+    function setMode(mode) {
+      document.querySelector('html').dataset.theme = mode;
+    }
+  </script>
+</body>
+
+</html>
